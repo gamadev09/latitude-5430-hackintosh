@@ -1,0 +1,13 @@
+{
+  "name": "latitude-5430-hackintosh-guide",
+  "version": "1.0.0",
+  "packageManager": "pnpm@9.15.0",
+  "description": "Apple Liquid Glass Hackintosh guide for Dell Latitude 5430 (macOS Tahoe)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["hackintosh", "latitude-5430", "macos-tahoe", "opencore"],
+  "license": "MIT"
+}

@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Latitude 5430 — macOS Tahoe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.88);
+      --text-muted: rgba(255, 255, 255, 0.65);
+      --purple-soft: #f3e8ff;
+
+      /* macOS System Settings Window Language (Solid content + blurred sidebar only) */
+      --win-bg: #1c1c20;
+      --win-sidebar-bg: rgba(36, 36, 42, 0.62);
+      --win-titlebar: #222227;
+      --win-border: rgba(255, 255, 255, 0.18);
+      --win-shadow:
+        0 32px 76px rgba(0, 0, 0, 0.58),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+
+      --group-bg: rgba(255, 255, 255, 0.045);
+      --group-border: rgba(255, 255, 255, 0.08);
+      --row-divider: rgba(255, 255, 255, 0.07);
+
+      --accent-green: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-red: #fb7185;
+      --radius-win: 26px;
+      --radius-pill: 999px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      font-size: 15px;
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    html { background: #0b0b2d; }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      background: transparent;
+    }
+
+    /* Desktop Wallpaper */
+    .wallpaper {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background:
+        url('wallpaper.jpg') center / cover no-repeat,
+        linear-gradient(180deg, #928dc0 0%, #54538b 38%, #221254 70%, #0b0b2d 100%);
+    }
+
+    /* macOS Menu Bar */
+    .menubar {
+      position: relative;
+      z-index: 60;
+      flex-shrink: 0;
+      height: 30px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: rgba(14, 7, 28, 0.58);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .menubar-left, .menubar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .menubar-app { font-weight: 700; color: #fff; }
+
+    .menubar-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font: inherit;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 5px;
+    }
+
+    .menubar-btn:hover, .menubar-btn.active {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Desktop Stage (Non-scrollable, Multi-Window) */
+    .desktop-stage {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      padding: 20px 24px 86px;
+      overflow: hidden;
+    }
+
+    /* Active macOS Window */
+    .mac-window {
+      display: none;
+      position: absolute;
+      width: min(860px, calc(100vw - 48px));
+      max-height: calc(100vh - 136px);
+      flex-direction: column;
+      border-radius: var(--radius-win);
+      background: var(--win-bg);
+      border: 1px solid var(--win-border);
+      box-shadow: var(--win-shadow);
+      overflow: hidden;
+      animation: winOpen 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+
+    #win-guide {
+      background: transparent;
+    }
+
+    #win-guide .win-body {
+      background: transparent;
+    }
+
+    #win-overview { top: 44px; left: calc(50% - min(430px, 46vw)); }
+    #win-compat   { top: 72px; left: calc(50% - min(400px, 44vw)); }
+    #win-guide    { top: 58px; left: calc(50% - min(415px, 45vw)); }
+    #win-browser  { top: 38px; left: calc(50% - min(440px, 47vw)); height: min(560px, calc(100vh - 140px)); }
+
+    /* Internal Safari Browser Chrome */
+    .safari-urlbar {
+      flex: 1;
+      max-width: 440px;
+      margin: 0 12px;
+      padding: 5px 12px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .safari-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .safari-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .safari-btn:hover { background: rgba(255, 255, 255, 0.22); }
+
+    .browser-body {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+      background: rgba(10, 6, 20, 0.55);
+    }
+
+    .browser-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #fff;
+    }
+
+    .mac-window.active { display: flex; }
+
+    .win-resize-handle {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      width: 18px;
+      height: 18px;
+      cursor: nwse-resize;
+      z-index: 10;
+      opacity: 0.45;
+      transition: opacity 0.15s ease;
+    }
+
+    .win-resize-handle::after {
+      content: "";
+      position: absolute;
+      right: 5px;
+      bottom: 5px;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid rgba(255, 255, 255, 0.7);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.7);
+      border-radius: 0 0 3px 0;
+    }
+
+    .win-resize-handle:hover { opacity: 0.95; }
+    .mac-window.maximized .win-resize-handle { display: none; }
+
+    .mac-window.maximized {
+      position: fixed;
+      top: 38px;
+      left: 12px;
+      right: 12px;
+      bottom: 84px;
+      width: auto;
+      max-width: none;
+      max-height: none;
+      transform: none !important;
+      border-radius: 16px;
+      z-index: 40;
+    }
+
+    .mac-window.minimized {
+      display: flex;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.72) translateY(180px) !important;
+      transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.4, 0, 1, 1);
+    }
+
+    @keyframes winOpen {
+      from { opacity: 0; transform: scale(0.97) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .win-titlebar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      background: var(--win-titlebar);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: grab;
+      user-select: none;
+    }
+
+    .win-titlebar:active { cursor: grabbing; }
+    .mac-window.maximized .win-titlebar { cursor: default; }
+
+    .win-controls { display: flex; gap: 8px; }
+
+    .traffic-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1;
+      color: transparent;
+      transition: color 0.12s ease, filter 0.12s ease;
+    }
+
+    .win-controls:hover .traffic-dot { color: rgba(20, 10, 30, 0.78); }
+    .traffic-dot:hover { filter: brightness(1.1); }
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #febc2e; }
+    .dot-green { background: #28c840; }
+
+    .win-title {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* macOS System Settings Grouped List Language */
+    .win-body {
+      padding: 20px 24px 24px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    .settings-group-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin: 16px 0 8px 4px;
+    }
+
+    .settings-group-title:first-child { margin-top: 0; }
+
+    .settings-group {
+      border-radius: 12px;
+      background: var(--group-bg);
+      border: 1px solid var(--group-border);
+      overflow: hidden;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--row-divider);
+    }
+
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row.hidden { display: none; }
+
+    .row-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .row-label {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .row-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .row-value {
+      font-size: 0.84rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    .row-code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 3px 9px;
+      border-radius: 7px;
+    }
+
+    .win-body::-webkit-scrollbar,
+    .code-box pre::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    .win-body::-webkit-scrollbar-track,
+    .code-box pre::-webkit-scrollbar-track {
+      background: transparent;
+      margin: 10px 0;
+    }
+
+    .win-body::-webkit-scrollbar-thumb,
+    .code-box pre::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      transition: background 0.2s ease;
+    }
+
+    .win-body:hover::-webkit-scrollbar-thumb,
+    .code-box pre:hover::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.32);
+    }
+
+    .win-body::-webkit-scrollbar-thumb:hover,
+    .code-box pre::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    /* Overview Window */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .overview-grid h1 {
+      font-size: clamp(1.9rem, 3.6vw, 2.7rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 10px;
+      background: linear-gradient(180deg, #ffffff 0%, #e9d5ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .overview-sub {
+      color: var(--text-secondary);
+      font-size: 0.96rem;
+      margin-bottom: 22px;
+    }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 18px;
+      border-radius: var(--radius-pill);
+      font-size: 0.86rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(155deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.12));
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.42);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(155deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.18));
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.22); }
+
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .spec-tile {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--tile-bg);
+      border: 1px solid var(--tile-border);
+      box-shadow: var(--tile-shadow);
+    }
+
+    .spec-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .spec-value { font-size: 1.04rem; font-weight: 700; margin-top: 2px; }
+
+    /* Segmented Filter */
+    .segmented {
+      display: inline-flex;
+      gap: 3px;
+      padding: 3px;
+      border-radius: 9px;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .seg-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 4px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .seg-btn.active {
+      background: rgba(255, 255, 255, 0.22);
+      color: #fff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+
+    /* Compatibility Grid */
+    .compat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .compat-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 15px;
+      border-radius: 18px;
+      background: var(--tile-bg);
+      border: 1px solid var(--tile-border);
+      box-shadow: var(--tile-shadow);
+    }
+
+    .compat-item.hidden { display: none; }
+    .compat-name { font-weight: 600; font-size: 0.9rem; }
+    .compat-note { font-size: 0.78rem; color: var(--text-muted); }
+
+    .status-pill {
+      flex-shrink: 0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      border: 1px solid transparent;
+    }
+
+    .status-ok { color: var(--accent-green); background: rgba(52, 211, 153, 0.14); border-color: rgba(52, 211, 153, 0.3); }
+    .status-warn { color: var(--accent-amber); background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.3); }
+    .status-no { color: var(--accent-red); background: rgba(251, 113, 133, 0.14); border-color: rgba(251, 113, 133, 0.3); }
+
+    /* OpenCore Guide Window (System Settings Sidebar + Content) */
+    .guide-layout {
+      display: grid;
+      grid-template-columns: 195px 1fr;
+      gap: 0;
+      margin: -20px -24px -24px;
+      min-height: 360px;
+    }
+
+    .guide-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 14px 10px;
+      background: var(--win-sidebar-bg);
+      backdrop-filter: blur(40px) saturate(190%);
+      -webkit-backdrop-filter: blur(40px) saturate(190%);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .guide-content {
+      padding: 20px 24px 24px;
+      overflow-y: auto;
+      background: var(--win-bg);
+    }
+
+    .side-btn {
+      text-align: left;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .side-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+    .side-btn.active {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .dortania-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .dortania-item {
+      padding: 13px 15px;
+      border-radius: 18px;
+      background: var(--tile-bg);
+      border: 1px solid var(--tile-border);
+      box-shadow: var(--tile-shadow);
+    }
+
+    .dortania-item code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.8rem;
+      color: var(--purple-soft);
+      background: rgba(168, 85, 247, 0.22);
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+
+    .dortania-item p { font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; }
+
+    .code-box {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(6, 2, 16, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .code-box pre { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: #f3e8ff; overflow-x: auto; }
+
+    .copy-btn {
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      color: #fff;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 4px 11px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+    }
+
+    .copy-btn:hover { background: rgba(255, 255, 255, 0.26); }
+
+    /* Bottom Dock */
+    .dock-wrap {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 60;
+    }
+
+    .dock {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.12) 100%);
+      backdrop-filter: blur(34px) saturate(200%);
+      -webkit-backdrop-filter: blur(34px) saturate(200%);
+      border: 1px solid rgba(255, 255, 255, 0.42);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .dock-btn {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      background: transparent;
+      border: none;
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 3px;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .dock-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.26), 0 1px 2px rgba(0, 0, 0, 0.18);
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+    }
+
+    .dock-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .dock-label {
+      position: absolute;
+      top: -32px;
+      padding: 3px 9px;
+      border-radius: 7px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(20, 10, 38, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .dock-btn:hover .dock-icon {
+      transform: translateY(-6px) scale(1.12);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    }
+
+    .dock-btn:hover .dock-label {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .dock-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    .dock-btn.active .dock-dot { background: #ffffff; }
+    .dock-divider { width: 1px; height: 34px; background: rgba(255, 255, 255, 0.2); }
+
+    @media (max-width: 760px) {
+      .overview-grid, .compat-grid, .guide-layout, .dortania-grid { grid-template-columns: 1fr; }
+      .guide-sidebar { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-right: 0; padding-bottom: 10px; }
+      .menubar-left .menubar-btn { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wallpaper" aria-hidden="true"></div>
+
+  <!-- macOS Menu Bar -->
+  <header class="menubar">
+    <div class="menubar-left">
+      <span class="menubar-app"> Latitude 5430</span>
+      <button class="menubar-btn active" data-win="overview">Overview</button>
+      <button class="menubar-btn" data-win="compat">Compatibility</button>
+      <button class="menubar-btn" data-win="guide">OpenCore</button>
+    </div>
+    <div class="menubar-right">
+      <span style="color: var(--text-secondary);">macOS Tahoe</span>
+      <span id="menu-clock" style="color: var(--text-secondary);"></span>
+    </div>
+  </header>
+
+  <!-- Single-Viewport Desktop Stage -->
+  <main class="desktop-stage">
+    <!-- Window 1: Overview -->
+    <section id="win-overview" class="mac-window active">
+      <div class="win-titlebar">
+        <div class="win-controls">
+          <button class="traffic-dot dot-red" data-action="close" title="Close" aria-label="Close window">×</button>
+          <button class="traffic-dot dot-yellow" data-action="minimize" title="Minimize" aria-label="Minimize window">−</button>
+          <button class="traffic-dot dot-green" data-action="maximize" title="Maximize" aria-label="Maximize window">+</button>
+        </div>
+        <span class="win-title">About This Hackintosh</span>
+        <span style="width: 44px;"></span>
+      </div>
+      <div class="win-body">
+        <div class="settings-group-title">Dell Latitude 5430 · macOS Tahoe</div>
+        <div class="settings-group">
+          <div class="settings-row">
+            <div class="row-left">
+              <span class="row-label">Operating System</span>
+              <span class="row-sub">Dortania Alder Lake OpenCore EFI</span>
+            </div>
+            <span class="row-value">macOS Tahoe</span>
+          </div>
+          <div class="settings-row">
+            <div class="row-left">
+              <span class="row-label">Processor</span>
+              <span class="row-sub">12th Gen Alder Lake-U</span>
+            </div>
+            <span class="row-value">Intel Core i7-1265U</span>
+          </div>
+          <div class="settings-row">
+            <div class="row-left">
+              <span class="row-label">Memory</span>
+              <span class="row-sub">Dual-Channel</span>
+            </div>
+            <span class="row-value">16 GB DDR4</span>
+          </div>
+          <div class="settings-row">
+            <div class="row-left">
+              <span class="row-label">Storage</span>
+              <span class="row-sub">APFS System Volume</span>
+            </div>
+            <span class="row-value">512 GB NVMe</span>
+          </div>
+        </div>
+
+        <div class="settings-group-title">Resources</div>
+        <div class="settings-group">
+          <div class="settings-row">
+            <div class="row-left">
+              <span class="row-label">OpenCore Setup</span>
+              <span class="row-sub">BIOS, ACPI, Kexts &amp; Post-Install</span>
+            </div>
+            <button class="btn btn-primary" data-win="guide">Open Guide</button>
+          </div>
+          <div class="settings-row">
+            <div class="row-left">
+              <span class="row-label">Dortania Install Guide</span>
+              <span class="row-sub">dortania.github.io</span>
+            </div>
+            <a class="btn btn-ghost" href="https://dortania.github.io/OpenCore-Install-Guide/" target="_blank" rel="noopener noreferrer">Open</a>
+          </div>
+          <div class="settings-row">
+            <div class="row-left">
+              <span class="row-label">GitHub Repository</span>
+              <span class="row-sub">gamadev09/EFI-latitude-5430-Taho-Hackintosh</span>
+            </div>
+            <a class="btn btn-ghost" href="https://github.com/gamadev09/EFI-latitude-5430-Taho-Hackintosh" target="_blank" rel="noopener noreferrer">Open</a>
+          </div>
+        </div>
+      </div>
+      <div class="win-resize-handle" aria-hidden="true"></div>
+    </section>
+
+    <!-- Window 2: Compatibility -->
+    <section id="win-compat" class="mac-window">
+      <div class="win-titlebar">
+        <div class="win-controls">
+          <button class="traffic-dot dot-red" data-action="close" title="Close" aria-label="Close window">×</button>
+          <button class="traffic-dot dot-yellow" data-action="minimize" title="Minimize" aria-label="Minimize window">−</button>
+          <button class="traffic-dot dot-green" data-action="maximize" title="Maximize" aria-label="Maximize window">+</button>
+        </div>
+        <span class="win-title">System Report — Compatibility</span>
+        <div class="segmented" role="group" aria-label="Filter compatibility">
+          <button class="seg-btn active" data-filter="all">All</button>
+          <button class="seg-btn" data-filter="ok">Working</button>
+          <button class="seg-btn" data-filter="caveat">Caveats</button>
+        </div>
+      </div>
+      <div class="win-body">
+        <div class="settings-group">
+          <div class="settings-row compat-item" data-status="ok">
+            <div class="row-left">
+              <span class="row-label">Core Hardware</span>
+              <span class="row-sub">Display, Audio, Trackpad, USB, Battery</span>
+            </div>
+            <span class="status-pill status-ok">Working</span>
+          </div>
+          <div class="settings-row compat-item" data-status="ok">
+            <div class="row-left">
+              <span class="row-label">Apple Ecosystem</span>
+              <span class="row-sub">iCloud, iMessage, FaceTime, Handoff</span>
+            </div>
+            <span class="status-pill status-ok">Working</span>
+          </div>
+          <div class="settings-row compat-item" data-status="ok">
+            <div class="row-left">
+              <span class="row-label">Fingerprint</span>
+              <span class="row-sub">Biometric unlock &amp; authentication</span>
+            </div>
+            <span class="status-pill status-ok">Working</span>
+          </div>
+          <div class="settings-row compat-item" data-status="ok">
+            <div class="row-left">
+              <span class="row-label">Virtualization</span>
+              <span class="row-sub">VT-x / Apple Hypervisor.framework</span>
+            </div>
+            <span class="status-pill status-ok">Working</span>
+          </div>
+          <div class="settings-row compat-item" data-status="ok">
+            <div class="row-left">
+              <span class="row-label">External Wake</span>
+              <span class="row-sub">USB keyboard / mouse wake</span>
+            </div>
+            <span class="status-pill status-ok">Working</span>
+          </div>
+          <div class="settings-row compat-item" data-status="caveat">
+            <div class="row-left">
+              <span class="row-label">Internal Sleep / Wake</span>
+              <span class="row-sub">Lid &amp; internal keys do not wake</span>
+            </div>
+            <span class="status-pill status-warn">External Only</span>
+          </div>
+          <div class="settings-row compat-item" data-status="caveat">
+            <div class="row-left">
+              <span class="row-label">AirDrop</span>
+              <span class="row-sub">Not functional on this configuration</span>
+            </div>
+            <span class="status-pill status-no">Not Working</span>
+          </div>
+        </div>
+      </div>
+      <div class="win-resize-handle" aria-hidden="true"></div>
+    </section>
+
+    <!-- Window 3: OpenCore Guide -->
+    <section id="win-guide" class="mac-window">
+      <div class="win-titlebar">
+        <div class="win-controls">
+          <button class="traffic-dot dot-red" data-action="close" title="Close" aria-label="Close window">×</button>
+          <button class="traffic-dot dot-yellow" data-action="minimize" title="Minimize" aria-label="Minimize window">−</button>
+          <button class="traffic-dot dot-green" data-action="maximize" title="Maximize" aria-label="Maximize window">+</button>
+        </div>
+        <span class="win-title">OpenCore Configurator — Dortania</span>
+        <span style="width: 44px;"></span>
+      </div>
+      <div class="win-body">
+        <div class="guide-layout">
+          <aside class="guide-sidebar" role="tablist">
+            <button class="side-btn active" data-tab="bios" role="tab">1. BIOS &amp; Prep</button>
+            <button class="side-btn" data-tab="efi" role="tab">2. ACPI &amp; Kexts</button>
+            <button class="side-btn" data-tab="install" role="tab">3. Install &amp; Post</button>
+            <button class="side-btn" data-tab="caveats" role="tab">4. Sleep &amp; Caveats</button>
+          </aside>
+
+          <div class="guide-content">
+            <div id="tab-bios" class="tab-panel active">
+              <div class="settings-group-title">Dell BIOS &amp; Pre-Install</div>
+              <div class="settings-group">
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">SATA / NVMe Mode</span>
+                    <span class="row-sub">Required for 512GB NVMe detection</span>
+                  </div>
+                  <span class="row-code">AHCI</span>
+                </div>
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">Secure &amp; Fast Boot</span>
+                    <span class="row-sub">Required for OpenCore EFI booting</span>
+                  </div>
+                  <span class="row-code">Disabled</span>
+                </div>
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">VT-d &amp; CFG Lock</span>
+                    <span class="row-sub">Keep VT-x enabled for Virtualization</span>
+                  </div>
+                  <span class="row-code">DisableIoMapper + AppleXcpmCfgLock</span>
+                </div>
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">SMBIOS &amp; Network</span>
+                    <span class="row-sub">Unique Serial/MLB/SmUUID for iServices</span>
+                  </div>
+                  <span class="row-code">GenSMBIOS + En0</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="tab-efi" class="tab-panel">
+              <div class="settings-group-title">ACPI (SSDTs)</div>
+              <div class="settings-group">
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">CPU &amp; USB Power</span>
+                    <span class="row-sub">Alder Lake power management &amp; EC</span>
+                  </div>
+                  <span class="row-code">SSDT-PLUG-ALT · EC-USBX</span>
+                </div>
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">Clock, Backlight &amp; Trackpad</span>
+                    <span class="row-sub">RTC, brightness slider &amp; I2C GPIO</span>
+                  </div>
+                  <span class="row-code">AWAC · PNLF · XOSI</span>
+                </div>
+              </div>
+
+              <div class="settings-group-title">Core Kexts</div>
+              <div class="settings-group">
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">Core Engine &amp; Graphics</span>
+                    <span class="row-sub">Patching, SMC sensors &amp; display</span>
+                  </div>
+                  <span class="row-code">Lilu · VirtualSMC · WEG</span>
+                </div>
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">Audio, Input &amp; USB</span>
+                    <span class="row-sub">Audio, gestures, USB map &amp; Tahoe fix</span>
+                  </div>
+                  <span class="row-code">AppleALC · VoodooI2C · UTBMap · RestrictEvents</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="tab-install" class="tab-panel">
+              <div class="settings-group-title">Install &amp; Post-Install</div>
+              <div class="settings-group">
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">Format Target Drive</span>
+                    <span class="row-sub">512GB NVMe in Disk Utility</span>
+                  </div>
+                  <span class="row-code">APFS (GUID)</span>
+                </div>
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">Internal EFI Migration</span>
+                    <span class="row-sub">Copy EFI to internal EFI partition</span>
+                  </div>
+                  <span class="row-value">Required</span>
+                </div>
+              </div>
+              <div class="code-box">
+                <pre id="pmset-cmd">sudo pmset -a hibernatemode 0 standby 0 autopoweroff 0</pre>
+                <button class="copy-btn" onclick="copyCmd('pmset-cmd', this)">Copy</button>
+              </div>
+            </div>
+
+            <div id="tab-caveats" class="tab-panel">
+              <div class="settings-group-title">Known Limitations</div>
+              <div class="settings-group">
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">Sleep / Wake</span>
+                    <span class="row-sub">Lid &amp; internal keys don't wake; use external USB</span>
+                  </div>
+                  <span class="status-pill status-warn">External Only</span>
+                </div>
+                <div class="settings-row">
+                  <div class="row-left">
+                    <span class="row-label">AirDrop</span>
+                    <span class="row-sub">All other Apple Ecosystem services work</span>
+                  </div>
+                  <span class="status-pill status-no">Not Working</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="win-resize-handle" aria-hidden="true"></div>
+    </section>
+
+    <!-- Window 4: Internal Safari Browser -->
+    <section id="win-browser" class="mac-window">
+      <div class="win-titlebar">
+        <div class="win-controls">
+          <button class="traffic-dot dot-red" data-action="close" title="Close" aria-label="Close window">×</button>
+          <button class="traffic-dot dot-yellow" data-action="minimize" title="Minimize" aria-label="Minimize window">−</button>
+          <button class="traffic-dot dot-green" data-action="maximize" title="Maximize" aria-label="Maximize window">+</button>
+        </div>
+        <div id="safari-url" class="safari-urlbar">https://dortania.github.io/OpenCore-Install-Guide/</div>
+        <div class="safari-actions">
+          <button id="safari-reload" class="safari-btn" title="Reload">↻</button>
+          <a id="safari-ext" class="safari-btn" href="https://dortania.github.io/OpenCore-Install-Guide/" target="_blank" rel="noopener noreferrer">↗</a>
+        </div>
+      </div>
+      <div class="browser-body">
+        <iframe id="safari-frame" class="browser-frame" title="Internal Browser" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+      </div>
+      <div class="win-resize-handle" aria-hidden="true"></div>
+    </section>
+  </main>
+
+  <!-- macOS Liquid Glass Dock -->
+  <div class="dock-wrap">
+    <nav class="dock" aria-label="Desktop Dock">
+      <!-- Overview: Original Apple-style white squircle with Latitude 5430 + Tahoe display -->
+      <button class="dock-btn active" data-win="overview" aria-label="Overview">
+        <span class="dock-label">Overview</span>
+        <span class="dock-icon">
+          <svg viewBox="0 0 64 64">
+            <defs>
+              <linearGradient id="ov-white" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="#e2e8f0"/>
+              </linearGradient>
+              <linearGradient id="ov-tahoe" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#a855f7"/>
+                <stop offset="55%" stop-color="#6366f1"/>
+                <stop offset="100%" stop-color="#1e1b4b"/>
+              </linearGradient>
+              <linearGradient id="ov-alu" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#cbd5e1"/>
+                <stop offset="100%" stop-color="#64748b"/>
+              </linearGradient>
+            </defs>
+            <rect width="64" height="64" fill="url(#ov-white)"/>
+            <rect x="12" y="16" width="40" height="26" rx="3.5" fill="#1e293b"/>
+            <rect x="14.5" y="18.5" width="35" height="21" rx="2" fill="url(#ov-tahoe)"/>
+            <path d="M14.5 18.5 H49.5 L34 39.5 H14.5 Z" fill="rgba(255,255,255,0.16)"/>
+            <path d="M8 43.5 H56 L53.5 47.5 C53 48.2 52 48.5 50.5 48.5 H13.5 C12 48.5 11 48.2 10.5 47.5 Z" fill="url(#ov-alu)"/>
+            <rect x="26" y="43.5" width="12" height="1.6" rx="0.8" fill="#475569"/>
+          </svg>
+        </span>
+        <span class="dock-dot"></span>
+      </button>
+
+      <!-- Compatibility: Original Apple-style white squircle with hardware status matrix + shield -->
+      <button class="dock-btn" data-win="compat" aria-label="Compatibility">
+        <span class="dock-label">Compatibility</span>
+        <span class="dock-icon">
+          <svg viewBox="0 0 64 64">
+            <defs>
+              <linearGradient id="cp-white" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="#e5e7eb"/>
+              </linearGradient>
+              <linearGradient id="cp-emerald" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#34d399"/>
+                <stop offset="100%" stop-color="#059669"/>
+              </linearGradient>
+            </defs>
+            <rect width="64" height="64" fill="url(#cp-white)"/>
+            <!-- 3 status rows -->
+            <rect x="12" y="15" width="40" height="9" rx="4.5" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+            <circle cx="17.5" cy="19.5" r="2.5" fill="#10b981"/>
+            <rect x="23" y="18" width="22" height="3" rx="1.5" fill="#94a3b8"/>
+
+            <rect x="12" y="27.5" width="40" height="9" rx="4.5" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+            <circle cx="17.5" cy="32" r="2.5" fill="#10b981"/>
+            <rect x="23" y="30.5" width="18" height="3" rx="1.5" fill="#94a3b8"/>
+
+            <rect x="12" y="40" width="40" height="9" rx="4.5" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+            <circle cx="17.5" cy="44.5" r="2.5" fill="#f59e0b"/>
+            <rect x="23" y="43" width="14" height="3" rx="1.5" fill="#94a3b8"/>
+
+            <!-- Floating verified badge -->
+            <circle cx="46" cy="44" r="10" fill="url(#cp-emerald)" stroke="#ffffff" stroke-width="2"/>
+            <path d="M41.5 44.2 L44.5 47.2 L50.8 40.8" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="dock-dot"></span>
+      </button>
+
+      <!-- OpenCore: Original Apple-style white squircle with EFI bootloader chip & traces -->
+      <button class="dock-btn" data-win="guide" aria-label="OpenCore Guide">
+        <span class="dock-label">OpenCore</span>
+        <span class="dock-icon">
+          <svg viewBox="0 0 64 64">
+            <defs>
+              <linearGradient id="oc-white" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="#e2e8f0"/>
+              </linearGradient>
+              <linearGradient id="oc-blue" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#38bdf8"/>
+                <stop offset="100%" stop-color="#2563eb"/>
+              </linearGradient>
+            </defs>
+            <rect width="64" height="64" fill="url(#oc-white)"/>
+            <g stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round">
+              <line x1="24" y1="11" x2="24" y2="17"/><line x1="32" y1="11" x2="32" y2="17"/><line x1="40" y1="11" x2="40" y2="17"/>
+              <line x1="24" y1="47" x2="24" y2="53"/><line x1="32" y1="47" x2="32" y2="53"/><line x1="40" y1="47" x2="40" y2="53"/>
+              <line x1="11" y1="24" x2="17" y2="24"/><line x1="11" y1="32" x2="17" y2="32"/><line x1="11" y1="40" x2="17" y2="40"/>
+              <line x1="47" y1="24" x2="53" y2="24"/><line x1="47" y1="32" x2="53" y2="32"/><line x1="47" y1="40" x2="53" y2="40"/>
+            </g>
+            <rect x="17" y="17" width="30" height="30" rx="7" fill="url(#oc-blue)"/>
+            <path d="M17 24 Q32 19 47 24 V17 H17 Z" fill="rgba(255,255,255,0.22)"/>
+            <circle cx="32" cy="32" r="7" fill="none" stroke="#ffffff" stroke-width="2.6"/>
+            <circle cx="32" cy="32" r="2.6" fill="#ffffff"/>
+          </svg>
+        </span>
+        <span class="dock-dot"></span>
+      </button>
+
+      <span class="dock-divider" aria-hidden="true"></span>
+
+      <!-- GitHub: Original Apple-style blue squircle with frosted Git branch emblem -->
+      <a class="dock-btn" href="https://github.com/gamadev09/EFI-latitude-5430-Taho-Hackintosh" target="_blank" rel="noopener noreferrer" aria-label="GitHub Repo">
+        <span class="dock-label">GitHub</span>
+        <span class="dock-icon">
+          <svg viewBox="0 0 64 64">
+            <defs>
+              <linearGradient id="gh-apple" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#60a5fa"/>
+                <stop offset="100%" stop-color="#2563eb"/>
+              </linearGradient>
+            </defs>
+            <rect width="64" height="64" fill="url(#gh-apple)"/>
+            <path d="M0 0 H64 V26 Q32 34 0 22 Z" fill="rgba(255,255,255,0.18)"/>
+            <path d="M23 20 V44" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>
+            <path d="M23 36 C23 29 41 31 41 24" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>
+            <circle cx="23" cy="18" r="4.5" fill="#ffffff"/>
+            <circle cx="23" cy="46" r="4.5" fill="#ffffff"/>
+            <circle cx="41" cy="22" r="4.5" fill="#ffffff"/>
+          </svg>
+        </span>
+        <span class="dock-dot"></span>
+      </a>
+    </nav>
+  </div>
+
+  <script>
+    // Live Menu Bar Clock
+    function updateClock() {
+      document.getElementById('menu-clock').textContent =
+        new Date().toLocaleTimeString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    // Multi-window state & z-index stacking
+    const winTriggers = document.querySelectorAll('[data-win]');
+    const windows = document.querySelectorAll('.mac-window');
+    let topZ = 10;
+
+    function focusWindow(win) {
+      topZ += 1;
+      win.style.zIndex = topZ;
+      const target = win.id.replace('win-', '');
+      document.querySelectorAll('.menubar-btn').forEach((el) => {
+        el.classList.toggle('active', el.dataset.win === target);
+      });
+    }
+
+    function syncDockDots() {
+      document.querySelectorAll('.dock-btn[data-win]').forEach((el) => {
+        const win = document.getElementById('win-' + el.dataset.win);
+        const isOpen = win && (win.classList.contains('active') || win.classList.contains('minimized'));
+        el.classList.toggle('active', Boolean(isOpen));
+      });
+    }
+
+    function openWindow(target) {
+      const win = document.getElementById('win-' + target);
+      if (!win) return;
+      win.classList.add('active');
+      win.classList.remove('minimized');
+      focusWindow(win);
+      syncDockDots();
+    }
+
+    winTriggers.forEach((btn) => {
+      btn.addEventListener('click', () => openWindow(btn.dataset.win));
+    });
+
+    windows.forEach((win) => {
+      win.addEventListener('pointerdown', () => focusWindow(win));
+    });
+
+    // Traffic-light actions: Close (Quit), Minimize, Maximize
+    document.querySelectorAll('[data-action]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const win = btn.closest('.mac-window');
+        const action = btn.dataset.action;
+
+        if (action === 'close') {
+          win.classList.remove('active', 'maximized', 'minimized');
+          syncDockDots();
+        } else if (action === 'minimize') {
+          win.classList.remove('maximized');
+          win.classList.add('minimized');
+          setTimeout(() => {
+            if (win.classList.contains('minimized')) win.classList.remove('active');
+            syncDockDots();
+          }, 250);
+        } else if (action === 'maximize') {
+          win.classList.toggle('maximized');
+          focusWindow(win);
+        }
+      });
+    });
+
+    syncDockDots();
+
+    // Draggable macOS Windows via Titlebar
+    windows.forEach((win) => {
+      const titlebar = win.querySelector('.win-titlebar');
+      let dragging = false;
+      let startX = 0, startY = 0;
+      let offsetX = 0, offsetY = 0;
+
+      titlebar.addEventListener('pointerdown', (e) => {
+        if (win.classList.contains('maximized')) return;
+        if (e.target.closest('button, .segmented')) return;
+        dragging = true;
+        startX = e.clientX - offsetX;
+        startY = e.clientY - offsetY;
+        titlebar.setPointerCapture(e.pointerId);
+      });
+
+      titlebar.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        offsetX = e.clientX - startX;
+        offsetY = e.clientY - startY;
+        win.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+      });
+
+      titlebar.addEventListener('pointerup', (e) => {
+        dragging = false;
+        if (titlebar.hasPointerCapture(e.pointerId)) {
+          titlebar.releasePointerCapture(e.pointerId);
+        }
+      });
+
+      // Resizable window via bottom-right handle
+      const handle = win.querySelector('.win-resize-handle');
+      if (handle) {
+        let resizing = false;
+        let rStartX = 0, rStartY = 0, startW = 0, startH = 0;
+
+        handle.addEventListener('pointerdown', (e) => {
+          if (win.classList.contains('maximized')) return;
+          e.stopPropagation();
+          resizing = true;
+          const rect = win.getBoundingClientRect();
+          rStartX = e.clientX;
+          rStartY = e.clientY;
+          startW = rect.width;
+          startH = rect.height;
+          win.style.maxWidth = 'none';
+          win.style.maxHeight = 'none';
+          handle.setPointerCapture(e.pointerId);
+        });
+
+        handle.addEventListener('pointermove', (e) => {
+          if (!resizing) return;
+          const newW = Math.max(380, Math.min(window.innerWidth - 32, startW + (e.clientX - rStartX)));
+          const newH = Math.max(240, Math.min(window.innerHeight - 110, startH + (e.clientY - rStartY)));
+          win.style.width = newW + 'px';
+          win.style.height = newH + 'px';
+        });
+
+        handle.addEventListener('pointerup', (e) => {
+          resizing = false;
+          if (handle.hasPointerCapture(e.pointerId)) {
+            handle.releasePointerCapture(e.pointerId);
+          }
+        });
+      }
+    });
+
+    // Compatibility Filter
+    const filterBtns = document.querySelectorAll('[data-filter]');
+    const compatItems = document.querySelectorAll('.compat-item');
+    filterBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.dataset.filter;
+        compatItems.forEach((item) => {
+          item.classList.toggle('hidden', !(filter === 'all' || item.dataset.status === filter));
+        });
+      });
+    });
+
+    // OpenCore Sidebar Tabs
+    const tabBtns = document.querySelectorAll('[data-tab]');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+    tabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach((b) => b.classList.remove('active'));
+        tabPanels.forEach((p) => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    function copyCmd(id, btn) {
+      navigator.clipboard.writeText(document.getElementById(id).textContent).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => (btn.textContent = orig), 1600);
+      });
+    }
+
+    // Open external links inside Internal Safari Browser Window
+    const safariWin = document.getElementById('win-browser');
+    const safariFrame = document.getElementById('safari-frame');
+    const safariUrl = document.getElementById('safari-url');
+    const safariExt = document.getElementById('safari-ext');
+    const safariReload = document.getElementById('safari-reload');
+
+    function openInBrowser(url) {
+      safariUrl.textContent = url;
+      safariExt.href = url;
+      safariFrame.src = url;
+      safariWin.classList.add('active');
+      safariWin.classList.remove('minimized');
+      focusWindow(safariWin);
+    }
+
+    document.querySelectorAll('a[target="_blank"]').forEach((link) => {
+      if (link.id === 'safari-ext') return;
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        openInBrowser(link.href);
+      });
+    });
+
+    safariReload.addEventListener('click', () => {
+      if (safariFrame.src) safariFrame.src = safariFrame.src;
+    });
+  </script>
+</body>
+</html>
